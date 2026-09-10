@@ -1,26 +1,25 @@
 <template>
   <div id="app" class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <Header />
-    
-    <!-- Main Content -->
-    <main class="flex-1">
-      <router-view />
-    </main>
-    
-    <!-- Footer -->
-    <Footer />
-    
-    <!-- Cart Sidebar -->
-    <CartSidebar />
-    
-    <!-- Notification Toast -->
+    <template v-if="isAdminRoute">
+      <AdminLayout>
+        <router-view />
+      </AdminLayout>
+    </template>
+    <template v-else>
+      <Header />
+      <main class="flex-1">
+        <router-view />
+      </main>
+      <Footer />
+      <CartSidebar />
+    </template>
     <NotificationToast />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useCartStore } from './stores/cart'
 import { useWishlistStore } from './stores/wishlist'
@@ -29,66 +28,37 @@ import Header from './components/layout/Header.vue'
 import Footer from './components/layout/Footer.vue'
 import CartSidebar from './components/cart/CartSidebar.vue'
 import NotificationToast from './components/ui/NotificationToast.vue'
+import AdminLayout from './components/layout/AdminLayout.vue'
 
+const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 const productStore = useProductStore()
 
-onMounted(() => {
-  // Initialize stores
-  authStore.initializeAuth()
+const isAdminRoute = computed(() => route.path.startsWith('/admin'))
+
+onMounted(async () => {
+  await authStore.initializeAuth()
   cartStore.loadFromLocalStorage()
-  wishlistStore.loadFromLocalStorage()
-  productStore.fetchProducts()
+  await wishlistStore.loadFromLocalStorage()
+  await productStore.fetchProducts({ page: 1, pageSize: 50 })
 })
 </script>
 
 <style>
-/* Global styles */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* Animations */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.3s ease;
-}
-
-.slide-enter-from {
-  transform: translateX(100%);
-}
-
-.slide-leave-to {
-  transform: translateX(100%);
 }
 </style>
