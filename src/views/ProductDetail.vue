@@ -271,10 +271,18 @@
                 </div>
               </div>
 
-              <!-- Mock Reviews -->
+              <form class="mb-6 space-y-3" @submit.prevent="submitReview">
+                <h4 class="font-medium">Write a review</h4>
+                <select v-model.number="reviewForm.rating" class="border rounded px-3 py-2">
+                  <option v-for="n in 5" :key="n" :value="n">{{ n }} stars</option>
+                </select>
+                <textarea v-model="reviewForm.body" required rows="3" class="w-full border rounded px-3 py-2" placeholder="Share your experience"></textarea>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Submit review</button>
+              </form>
+
               <div class="space-y-4">
                 <div
-                  v-for="review in mockReviews"
+                  v-for="review in reviews"
                   :key="review.id"
                   class="border-b border-gray-200 pb-4"
                 >
@@ -380,13 +388,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProductStore } from '../stores/products'
 import { useCartStore } from '../stores/cart'
 import { useWishlistStore } from '../stores/wishlist'
 import { useAuthStore } from '../stores/auth'
+import { useNotification } from '../composables/useNotification'
+import { fetchReviews, createReview } from '../services/reviews'
 
+const { notify } = useNotification()
 const route = useRoute()
 const router = useRouter()
 const productStore = useProductStore()
@@ -397,42 +408,41 @@ const authStore = useAuthStore()
 const selectedImage = ref('')
 const selectedVariants = ref({})
 const quantity = ref(1)
+const product = ref(null)
+const reviews = ref([])
+const relatedProducts = ref([])
+const reviewForm = ref({ rating: 5, body: '' })
 
-const product = computed(() => {
-  return productStore.getProductById(route.params.id)
-})
-
-const relatedProducts = computed(() => {
-  if (!product.value) return []
-  return productStore.getRelatedProducts(product.value)
-})
-
-const mockReviews = [
-  {
-    id: 1,
-    name: 'Sarah Johnson',
-    rating: 5,
-    date: '2 weeks ago',
-    avatar: 'https://via.placeholder.com/40',
-    comment: 'Excellent product! Exactly as described and arrived quickly. Highly recommend!'
-  },
-  {
-    id: 2,
-    name: 'Mike Chen',
-    rating: 4,
-    date: '1 month ago',
-    avatar: 'https://via.placeholder.com/40',
-    comment: 'Great quality and good value for money. Will definitely buy again.'
-  },
-  {
-    id: 3,
-    name: 'Emily Davis',
-    rating: 5,
-    date: '1 month ago',
-    avatar: 'https://via.placeholder.com/40',
-    comment: 'Love this product! Perfect for my needs and the customer service was excellent.'
+const loadProduct = async () => {
+  product.value = await productStore.fetchProductById(route.params.id)
+  if (product.value) {
+    selectedImage.value = product.value.images?.[0]
+    relatedProducts.value = await productStore.getRelatedProducts(product.value)
+    reviews.value = await fetchReviews(product.value.id)
+    if (product.value.variants) {
+      product.value.variants.forEach((variant) => {
+        selectedVariants.value[variant.name] = variant.options[0]
+      })
+    }
   }
-]
+}
+
+const submitReview = async () => {
+  if (!authStore.isAuthenticated) {
+    notify({ type: 'error', title: 'Sign in required', message: 'Log in to leave a review.' })
+    return
+  }
+  if (!reviewForm.value.body.trim()) return
+  await createReview({
+    productId: product.value.id,
+    userId: authStore.user.id,
+    rating: reviewForm.value.rating,
+    body: reviewForm.value.body
+  })
+  reviews.value = await fetchReviews(product.value.id)
+  reviewForm.value.body = ''
+  notify({ type: 'success', title: 'Review submitted' })
+}
 
 const selectVariant = (variantName, option) => {
   selectedVariants.value[variantName] = option
@@ -440,13 +450,13 @@ const selectVariant = (variantName, option) => {
 
 const addToCart = () => {
   if (product.value && product.value.inStock) {
-    cartStore.addItem(product.value, quantity.value, selectedVariants.value)
+    const qty = Math.min(quantity.value, product.value.stockCount || quantity.value)
+    cartStore.addItem(product.value, qty, selectedVariants.value)
     cartStore.openCart()
-    
-    window.showNotification({
+    notify({
       type: 'success',
       title: 'Added to cart!',
-      message: `${quantity.value}x ${product.value.name}`
+      message: `${qty}x ${product.value.name}`
     })
   }
 }
@@ -454,16 +464,10 @@ const addToCart = () => {
 const toggleWishlist = () => {
   if (product.value) {
     wishlistStore.toggleItem(product.value)
-    
     const message = wishlistStore.isInWishlist(product.value.id)
       ? 'Added to wishlist'
       : 'Removed from wishlist'
-      
-    window.showNotification({
-      type: 'success',
-      title: message,
-      message: product.value.name
-    })
+    notify({ type: 'success', title: message, message: product.value.name })
   }
 }
 
@@ -474,22 +478,8 @@ const buyNow = () => {
   }
 }
 
-onMounted(() => {
-  if (productStore.products.length === 0) {
-    productStore.fetchProducts()
-  }
-  
-  if (product.value) {
-    selectedImage.value = product.value.images[0]
-    
-    // Initialize variant selections
-    if (product.value.variants) {
-      product.value.variants.forEach(variant => {
-        selectedVariants.value[variant.name] = variant.options[0]
-      })
-    }
-  }
-})
+onMounted(loadProduct)
+watch(() => route.params.id, loadProduct)
 </script>
 
 <style scoped>
