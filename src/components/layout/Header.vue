@@ -10,15 +10,23 @@
             <span>24/7 Customer Support</span>
           </div>
           <div class="flex items-center space-x-4">
-            <select class="bg-transparent text-white text-sm border-none focus:outline-none">
+            <select
+              :value="ui.currency"
+              @change="ui.setCurrency($event.target.value)"
+              class="bg-transparent text-white text-sm border-none focus:outline-none"
+            >
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
               <option value="GBP">GBP</option>
             </select>
-            <select class="bg-transparent text-white text-sm border-none focus:outline-none">
-              <option value="EN">EN</option>
-              <option value="ES">ES</option>
-              <option value="FR">FR</option>
+            <select
+              :value="ui.locale"
+              @change="onLocaleChange($event.target.value)"
+              class="bg-transparent text-white text-sm border-none focus:outline-none"
+            >
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
             </select>
           </div>
         </div>
@@ -50,7 +58,7 @@
               v-model="searchQuery"
               @keyup.enter="performSearch"
               type="text"
-              placeholder="Search for products, brands, and more..."
+              :placeholder="$t('searchPlaceholder')"
               class="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
             <button
@@ -220,24 +228,33 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
 import { useCartStore } from '../../stores/cart'
 import { useWishlistStore } from '../../stores/wishlist'
 import { useProductStore } from '../../stores/products'
+import { useUiStore } from '../../stores/ui'
 
 const router = useRouter()
+const { locale } = useI18n()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 const productStore = useProductStore()
+const ui = useUiStore()
 
 const searchQuery = ref('')
 const showUserMenu = ref(false)
 
+const onLocaleChange = (value) => {
+  ui.setLocale(value)
+  locale.value = value
+}
+
 const performSearch = () => {
   if (searchQuery.value.trim()) {
     productStore.setSearchQuery(searchQuery.value)
-    router.push('/products')
+    router.push({ path: '/products', query: { q: searchQuery.value.trim() } })
   }
 }
 
@@ -247,7 +264,6 @@ const logout = () => {
   router.push('/')
 }
 
-// Close user menu when clicking outside
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.relative')) {
     showUserMenu.value = false
