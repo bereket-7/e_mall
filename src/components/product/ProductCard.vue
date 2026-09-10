@@ -127,6 +127,9 @@
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cart'
 import { useWishlistStore } from '../../stores/wishlist'
+import { useNotification } from "../../composables/useNotification"
+
+const { notify } = useNotification()
 
 const props = defineProps({
   product: {
@@ -146,7 +149,7 @@ const toggleWishlist = () => {
     ? 'Added to wishlist'
     : 'Removed from wishlist'
     
-  window.showNotification({
+  notify({
     type: 'success',
     title: message,
     message: props.product.name
@@ -162,13 +165,13 @@ const quickAddToCart = () => {
     cartStore.addItem(props.product, 1)
     cartStore.openCart()
     
-    window.showNotification({
+    notify({
       type: 'success',
       title: 'Added to cart!',
       message: props.product.name
     })
   } else {
-    window.showNotification({
+    notify({
       type: 'error',
       title: 'Out of stock',
       message: 'This product is currently unavailable'
