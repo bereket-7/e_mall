@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia'
+import * as wishlistService from '../services/wishlist'
+import { useAuthStore } from './auth'
 
 export const useWishlistStore = defineStore('wishlist', {
   state: () => ({
@@ -7,43 +9,40 @@ export const useWishlistStore = defineStore('wishlist', {
 
   getters: {
     itemCount: (state) => state.items.length,
-    isInWishlist: (state) => (productId) => state.items.some(item => item.id === productId)
+    isInWishlist: (state) => (productId) => state.items.some((item) => item.id === productId)
   },
 
   actions: {
-    addItem(product) {
-      if (!this.isInWishlist(product.id)) {
-        this.items.push(product)
-        this.saveToLocalStorage()
-      }
-    },
-
-    removeItem(productId) {
-      this.items = this.items.filter(item => item.id !== productId)
-      this.saveToLocalStorage()
-    },
-
-    toggleItem(product) {
-      if (this.isInWishlist(product.id)) {
-        this.removeItem(product.id)
-      } else {
-        this.addItem(product)
-      }
-    },
-
-    clearWishlist() {
-      this.items = []
-      this.saveToLocalStorage()
-    },
-
-    saveToLocalStorage() {
-      localStorage.setItem('wishlist', JSON.stringify(this.items))
+    async load() {
+      const auth = useAuthStore()
+      this.items = await wishlistService.fetchWishlist(auth.user?.id)
     },
 
     loadFromLocalStorage() {
-      const saved = localStorage.getItem('wishlist')
-      if (saved) {
-        this.items = JSON.parse(saved)
+      this.load()
+    },
+
+    async addItem(product) {
+      const auth = useAuthStore()
+      this.items = await wishlistService.addToWishlist(auth.user?.id, product)
+    },
+
+    async removeItem(productId) {
+      const auth = useAuthStore()
+      this.items = await wishlistService.removeFromWishlist(auth.user?.id, productId)
+    },
+
+    async toggleItem(product) {
+      if (this.isInWishlist(product.id)) {
+        await this.removeItem(product.id)
+      } else {
+        await this.addItem(product)
+      }
+    },
+
+    async clearWishlist() {
+      for (const item of [...this.items]) {
+        await this.removeItem(item.id)
       }
     }
   }
