@@ -158,8 +158,9 @@
                   Apply
                 </button>
               </div>
-              <div v-if="appliedCoupon" class="mt-2 text-sm text-green-600">
-                ✓ Coupon "{{ appliedCoupon.code }}" applied
+              <div v-if="cartStore.appliedCoupon" class="mt-2 text-sm text-green-600 flex justify-between">
+                <span>✓ Coupon "{{ cartStore.appliedCoupon.code }}" applied</span>
+                <button type="button" class="text-red-500" @click="cartStore.clearCoupon()">Remove</button>
               </div>
             </div>
 
@@ -170,9 +171,9 @@
                 <span>${{ cartStore.subtotal.toFixed(2) }}</span>
               </div>
               
-              <div v-if="appliedCoupon" class="flex justify-between text-sm text-green-600">
-                <span>Discount ({{ appliedCoupon.code }})</span>
-                <span>-${{ discountAmount.toFixed(2) }}</span>
+              <div v-if="cartStore.discountAmount" class="flex justify-between text-sm text-green-600">
+                <span>Discount ({{ cartStore.appliedCoupon?.code }})</span>
+                <span>-${{ cartStore.discountAmount.toFixed(2) }}</span>
               </div>
               
               <div class="flex justify-between text-sm">
@@ -189,7 +190,7 @@
               <div class="border-t border-gray-200 pt-3">
                 <div class="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>${{ finalTotal.toFixed(2) }}</span>
+                  <span>${{ cartStore.grandTotal.toFixed(2) }}</span>
                 </div>
               </div>
             </div>
@@ -235,48 +236,31 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useWishlistStore } from '../stores/wishlist'
+import { useNotification } from "../composables/useNotification"
+
+const { notify } = useNotification()
 
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 
-const couponCode = ref('')
-const appliedCoupon = ref(null)
+const couponCode = ref(cartStore.appliedCoupon?.code || '')
 
-const discountAmount = computed(() => {
-  if (!appliedCoupon.value) return 0
-  
-  if (appliedCoupon.value.type === 'percentage') {
-    return cartStore.subtotal * appliedCoupon.value.discount
-  } else {
-    return appliedCoupon.value.discount
-  }
-})
-
-const finalTotal = computed(() => {
-  return cartStore.grandTotal - discountAmount.value
-})
-
-const applyCoupon = () => {
+const applyCoupon = async () => {
   if (!couponCode.value.trim()) return
-  
-  const coupon = cartStore.applyCoupon(couponCode.value.toUpperCase())
-  
+
+  const coupon = await cartStore.applyCouponAsync(couponCode.value.toUpperCase())
+
   if (coupon) {
-    appliedCoupon.value = {
-      code: couponCode.value.toUpperCase(),
-      ...coupon
-    }
-    
-    window.showNotification({
+    notify({
       type: 'success',
       title: 'Coupon applied!',
-      message: `You saved $${discountAmount.value.toFixed(2)}`
+      message: `You saved $${cartStore.discountAmount.toFixed(2)}`
     })
   } else {
-    window.showNotification({
+    notify({
       type: 'error',
       title: 'Invalid coupon',
       message: 'Please check the coupon code and try again.'
@@ -288,7 +272,7 @@ const moveToWishlist = (item) => {
   wishlistStore.addItem(item)
   cartStore.removeItem(item.cartId)
   
-  window.showNotification({
+  notify({
     type: 'success',
     title: 'Moved to wishlist',
     message: item.name
