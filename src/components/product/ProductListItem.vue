@@ -153,6 +153,9 @@
 <script setup>
 import { useCartStore } from '../../stores/cart'
 import { useWishlistStore } from '../../stores/wishlist'
+import { useNotification } from "../../composables/useNotification"
+
+const { notify } = useNotification()
 
 const props = defineProps({
   product: {
@@ -169,7 +172,7 @@ const addToCart = () => {
     cartStore.addItem(props.product, 1)
     cartStore.openCart()
     
-    window.showNotification({
+    notify({
       type: 'success',
       title: 'Added to cart!',
       message: props.product.name
@@ -184,7 +187,7 @@ const toggleWishlist = () => {
     ? 'Added to wishlist'
     : 'Removed from wishlist'
     
-  window.showNotification({
+  notify({
     type: 'success',
     title: message,
     message: props.product.name
