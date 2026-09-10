@@ -166,6 +166,9 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useNotification } from "../composables/useNotification"
+
+const { notify } = useNotification()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -193,7 +196,7 @@ const isFormValid = computed(() => {
 
 const handleSubmit = async () => {
   if (!isFormValid.value) {
-    window.showNotification({
+    notify({
       type: 'error',
       title: 'Invalid form',
       message: 'Please fill out all fields correctly.'
@@ -211,7 +214,7 @@ const handleSubmit = async () => {
     })
     
     if (result.success) {
-      window.showNotification({
+      notify({
         type: 'success',
         title: 'Account created!',
         message: 'Welcome to E-Mall! You have been signed in.'
@@ -219,14 +222,14 @@ const handleSubmit = async () => {
       
       router.push('/')
     } else {
-      window.showNotification({
+      notify({
         type: 'error',
         title: 'Registration failed',
         message: result.message || 'Please try again.'
       })
     }
   } catch (error) {
-    window.showNotification({
+    notify({
       type: 'error',
       title: 'Error',
       message: 'An unexpected error occurred. Please try again.'
