@@ -179,6 +179,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useProductStore } from '../../stores/products'
+import { useNotification } from "../../composables/useNotification"
+
+const { notify } = useNotification()
 
 const emit = defineEmits(['close'])
 
@@ -186,7 +189,7 @@ const productStore = useProductStore()
 
 const searchQuery = ref('')
 const selectedCategory = ref('')
-const priceRange = ref([0, 1000])
+const priceRange = ref([0, productStore.maxPrice || 3000])
 const selectedBrand = ref('')
 const selectedRating = ref(0)
 const inStockOnly = ref(false)
@@ -201,51 +204,55 @@ const updatePriceRange = () => {
   })
 }
 
-const applyFilters = () => {
+const applyFilters = async () => {
   productStore.setFilters({
     category: selectedCategory.value,
     priceRange: [Number(priceRange.value[0]), Number(priceRange.value[1])],
     brand: selectedBrand.value,
-    rating: Number(selectedRating.value)
+    rating: Number(selectedRating.value),
+    inStockOnly: inStockOnly.value
   })
-  
+
   productStore.setSearchQuery(searchQuery.value)
-  
-  window.showNotification({
+  productStore.setPage(1)
+  await productStore.fetchProducts()
+
+  notify({
     type: 'success',
     title: 'Filters applied',
     message: 'Product list has been updated'
   })
-  
+
   emit('close')
 }
 
-const clearAllFilters = () => {
+const clearAllFilters = async () => {
   searchQuery.value = ''
   selectedCategory.value = ''
-  priceRange.value = [0, 1000]
+  priceRange.value = [0, productStore.maxPrice || 3000]
   selectedBrand.value = ''
   selectedRating.value = 0
   inStockOnly.value = false
-  
+
   productStore.resetFilters()
-  
-  window.showNotification({
+  await productStore.fetchProducts()
+
+  notify({
     type: 'info',
     title: 'Filters cleared',
     message: 'All filters have been reset'
   })
-  
+
   emit('close')
 }
 
 onMounted(() => {
-  // Initialize with current filter values
   const filters = productStore.filters
   selectedCategory.value = filters.category
   priceRange.value = [...filters.priceRange]
   selectedBrand.value = filters.brand
   selectedRating.value = filters.rating
+  inStockOnly.value = filters.inStockOnly
   searchQuery.value = productStore.searchQuery
 })
 </script>
