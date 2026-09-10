@@ -122,6 +122,9 @@
 <script setup>
 import { useWishlistStore } from '../stores/wishlist'
 import { useCartStore } from '../stores/cart'
+import { useNotification } from "../composables/useNotification"
+
+const { notify } = useNotification()
 
 const wishlistStore = useWishlistStore()
 const cartStore = useCartStore()
@@ -129,7 +132,7 @@ const cartStore = useCartStore()
 const removeFromWishlist = (item) => {
   wishlistStore.removeItem(item.id)
   
-  window.showNotification({
+  notify({
     type: 'info',
     title: 'Removed from wishlist',
     message: item.name
@@ -140,7 +143,7 @@ const addToCart = (item) => {
   cartStore.addItem(item, 1)
   cartStore.openCart()
   
-  window.showNotification({
+  notify({
     type: 'success',
     title: 'Added to cart!',
     message: item.name
