@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "create-payment-intent": { "verify_jwt": true },
+    "stripe-webhook": { "verify_jwt": false }
+  }
+}
