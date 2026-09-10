@@ -40,12 +40,9 @@
         <div class="space-y-4">
           <h3 class="text-lg font-semibold">Customer Service</h3>
           <ul class="space-y-2">
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Help Center</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Contact Us</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Returns & Exchanges</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Shipping Info</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Size Guide</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Track Your Order</a></li>
+            <li><router-link to="/returns" class="text-gray-300 hover:text-white transition-colors">Returns & Exchanges</router-link></li>
+            <li><router-link to="/shipping" class="text-gray-300 hover:text-white transition-colors">Shipping Info</router-link></li>
+            <li><router-link to="/orders" class="text-gray-300 hover:text-white transition-colors">Track Your Order</router-link></li>
           </ul>
         </div>
 
@@ -53,12 +50,8 @@
         <div class="space-y-4">
           <h3 class="text-lg font-semibold">Company</h3>
           <ul class="space-y-2">
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">About Us</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Careers</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Press</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Blog</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Affiliate Program</a></li>
-            <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Sustainability</a></li>
+            <li><router-link to="/terms" class="text-gray-300 hover:text-white transition-colors">Terms of Service</router-link></li>
+            <li><router-link to="/privacy" class="text-gray-300 hover:text-white transition-colors">Privacy Policy</router-link></li>
           </ul>
         </div>
 
@@ -150,10 +143,10 @@
           </p>
           <!-- Legal Links -->
           <div class="flex items-center space-x-6 text-sm">
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">Cookie Policy</a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">Accessibility</a>
+            <router-link to="/privacy" class="text-gray-400 hover:text-white transition-colors">Privacy Policy</router-link>
+            <router-link to="/terms" class="text-gray-400 hover:text-white transition-colors">Terms of Service</router-link>
+            <router-link to="/shipping" class="text-gray-400 hover:text-white transition-colors">Shipping</router-link>
+            <router-link to="/returns" class="text-gray-400 hover:text-white transition-colors">Returns</router-link>
           </div>
         </div>
       </div>
@@ -163,14 +156,20 @@
 
 <script setup>
 import { ref } from 'vue'
+import { subscribeNewsletter as subscribe } from '../../services/newsletter'
+import { useNotification } from '../../composables/useNotification'
 
+const { notify } = useNotification()
 const email = ref('')
 
-const subscribeNewsletter = () => {
-  if (email.value) {
-    // Mock newsletter subscription
-    alert('Thank you for subscribing to our newsletter!')
+const subscribeNewsletter = async () => {
+  if (!email.value) return
+  try {
+    await subscribe(email.value)
+    notify({ type: 'success', title: 'Subscribed!', message: 'Thanks for joining our newsletter.' })
     email.value = ''
+  } catch (e) {
+    notify({ type: 'error', title: 'Error', message: e.message })
   }
 }
 </script>
